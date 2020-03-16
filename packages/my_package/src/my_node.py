@@ -1,9 +1,16 @@
 #!/usr/bin/env python
 
 import os
+import numpy as np
+import cv2
+import sys
 import rospy
+import math
+import time
 from duckietown import DTROS
 from std_msgs.msg import String
+from sensor_msgs.msg import CompressedImage, CameraInfo, Image
+from cv_bridge import CvBridge, CvBridgeError
 
 class MyNode(DTROS):
 
@@ -12,15 +19,36 @@ class MyNode(DTROS):
         super(MyNode, self).__init__(node_name=node_name)
         # construct publisher
         self.pub = rospy.Publisher('chatter', String, queue_size=10)
+	self.imagesub = rospy.Subscriber("/duckiesam/camera_node/image/compressed", CompressedImage, self.find_marker, buff_size=921600,queue_size=1)
+	self.pub_image = rospy.Publisher('~image', Image, queue_size = 1)
+	self.bridge = CvBridge()
+	self.gotimage = False
+	self.imagelast = None
+
+
+    def find_marker(self, image_msg):
+	try:
+	    self.imagelast = self.bridge.compressed_imgmsg_to_cv2(image_msg, "bgr8")
+	except CvBridgeError as e:
+	    print(e)
+	if self.gotimage == False:
+	    self.gotimage = True
+
 
     def run(self):
         # publish message every 1 second
         rate = rospy.Rate(1) # 1Hz
         while not rospy.is_shutdown():
-            message = "Hello World!"
-            rospy.loginfo("Publishing message: '%s'" % message)
-            self.pub.publish(message)
+	    if self.gotimage:
+                message = "Hello World! %s" % os.environ['VEHICLE_NAME']
+                rospy.loginfo("Publishing message: '%s'" % message)
+                self.pub.publish(message)
+	        img_out = self.bridge.cv2_to_imgmsg(self.imagelast, "bgr8")
+		self.pub_image.publish(img_out)
+		rospy.loginfo("Working '%s'" % message)
+
             rate.sleep()
+
 
 if __name__ == '__main__':
     # create the node
@@ -28,4 +56,9 @@ if __name__ == '__main__':
     # run node
     node.run()
     # keep spinning
-    rospy.spin()
+    try:
+        rospy.spin()
+    except KeyboardInterrupt:
+	print("shutting down")
+    cv2.destroyAllWindows()
+    

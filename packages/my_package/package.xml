@@ -7,5 +7,5 @@
   <maintainer email="sophiaminji@gmail.com">Minji_Kim</maintainer>
   <license>None</license>
 
-  <buildtoo_depend>catkin</buildtool_depend>
+  <buildtool_depend>catkin</buildtool_depend>
 </package>

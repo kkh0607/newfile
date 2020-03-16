@@ -1,0 +1,11 @@
+<package>
+  <name>my_package</name>
+  <version>0.1.0</version>
+  <description>
+  This package is for the first draft for project.
+  </description>
+  <maintainer email="sophiaminji@gmail.com">Minji_Kim</maintainer>
+  <license>None</license>
+
+  <buildtoo_depend>catkin</buildtool_depend>
+</package>

@@ -45,6 +45,8 @@ class MyNode(DTROS):
         if detection:
             cv2.drawChessboardCorners(self.processedImg, (7,3), corners, detection)
             self.detected = True
+	else:
+	    self.detected = False
 
     def run(self):
         # publish message every 1 second

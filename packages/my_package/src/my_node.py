@@ -33,6 +33,7 @@ class MyNode(DTROS):
         self.solP = False
         self.rotationvector = None
         self.translationvector = None
+	self.axis = np.float32([[0.0125,0,0], [0,0.0125,0], [0,0,-0.0375]]).reshape(-1,3)
 
     #get camera info for pinhole camera model
     def get_camera_info(self, camera_msg):
@@ -66,6 +67,7 @@ class MyNode(DTROS):
             
             self.originalmatrix()
             self.gradient(twoone)
+	    self.detected = self.solP
             
         else:
             self.detected = False
@@ -80,10 +82,16 @@ class MyNode(DTROS):
                 self.originalmtx[i + j * 7, 1] = 0.0125 * j - 0.0125
 
     
-    #step 3 : use intrinsic matrix and solvePnP, return rvec and tvec, print (show) norm
+    #step 3 : use intrinsic matrix and solvePnP, return rvec and tvec, print axis
     def gradient(self, imgpts):
-    #using solvePnP to find rotation vector and translation vector
+    #using solvePnP to find rotation vector and translation vector and also find 3D point to the image plane
         self.solP, self.rotationvector, self.translationvector = cv2.solvePnP(self.originalmtx, imgpts, self.camerainfo.intrinsicMatrix(), self.camerainfo.distortionCoeffs())
+	if self.solP:
+	    pointsin3D, jacoB = cv2.projectPoints(self.originalmtx, self.rotationvector, self.translationvector, self.camerainfo.intrinsicMatrix(), self.camerainfo.distortionCoeffs())
+	    pointaxis, _ = cv2.projectPoints(self.axis, self.rotationvector, self.translationvector, self.camerainfo.intrinsicMatrix(), self.camerainfo.distortionCoeffs())
+	    self.processedImg = cv2.line(self.processedImg, tuple(imgpts[10].ravel()), tuple(pointaxis[0].ravel()), (255, 0, 0), 2)
+	    self.processedImg = cv2.line(self.processedImg, tuple(imgpts[10].ravel()), tuple(pointaxis[1].ravel()), (0, 255, 0), 2)
+	    self.processedImg = cv2.line(self.processedImg, tuple(imgpts[10].ravel()), tuple(pointaxis[2].ravel()), (0, 0, 255), 3)
 
         
     def run(self):

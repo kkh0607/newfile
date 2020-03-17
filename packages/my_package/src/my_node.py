@@ -13,6 +13,7 @@ from sensor_msgs.msg import CompressedImage, CameraInfo, Image
 from cv_bridge import CvBridge, CvBridgeError
 from image_geometry import PinholeCameraModel
 
+
 class MyNode(DTROS):
 
     def __init__(self, node_name):

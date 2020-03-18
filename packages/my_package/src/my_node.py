@@ -35,6 +35,7 @@ class MyNode(DTROS):
         self.translationvector = None
         self.axis = np.float32([[0.0125,0,0], [0,0.0125,0], [0,0,-0.0375]]).reshape(-1,3)
         self.distance = None
+        self.maxdistance = 0.2
 
     #get camera info for pinhole camera model
     def get_camera_info(self, camera_msg):
@@ -107,6 +108,15 @@ class MyNode(DTROS):
         textdistance = "Distance = %s" % self.distance
         rospy.loginfo("%s" % textdistance)
         self.pub.publish(textdistance)
+        
+    #step 5 : use joy mapper to controll the robot
+    def move(self):
+        #if detected = LF false, if not = LF true
+        
+        #if distance = 0, wait
+        
+        #if distance > 0 and length.listmovement > 5
+        
     
     def run(self):
         # publish message every 1 second

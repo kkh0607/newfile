@@ -69,6 +69,7 @@ class MyNode(DTROS):
             self.originalmatrix()
             self.gradient(twoone)
             self.detected = self.solP
+	    self.find_distance()
             
         else:
             self.detected = False
@@ -95,7 +96,7 @@ class MyNode(DTROS):
             self.processedImg = cv2.line(self.processedImg, tuple(imgpts[10].ravel()), tuple(pointaxis[2].ravel()), (0, 0, 255), 3)
 
     #step 4 : find distance between robot and following robot print out distance and time
-    def distance(self):
+    def find_distance(self):
     #use tvec to calculate distance
         tvx = self.translationvector[0]
         tvy = self.translationvector[1]
@@ -109,7 +110,7 @@ class MyNode(DTROS):
     
     def run(self):
         # publish message every 1 second
-        rate = rospy.Rate(1) # 1Hz
+        rate = rospy.Rate(4) # 1Hz
         while not rospy.is_shutdown():
             if self.gotimage:
                 message = "%s" % os.environ['VEHICLE_NAME']

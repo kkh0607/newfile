@@ -12,6 +12,7 @@ from std_msgs.msg import String
 from sensor_msgs.msg import CompressedImage, CameraInfo, Image
 from cv_bridge import CvBridge, CvBridgeError
 from image_geometry import PinholeCameraModel
+from duckietown_msgs.msg import Twist2DStamped
 
 
 class MyNode(DTROS):
@@ -19,23 +20,38 @@ class MyNode(DTROS):
     def __init__(self, node_name):
         # initialize the DTROS parent class
         super(MyNode, self).__init__(node_name=node_name)
-        # construct publisher
+
+        # construct publisher and subsriber
         self.pub = rospy.Publisher('chatter', String, queue_size=10)
-        self.imagesub = rospy.Subscriber("/duckiesam/camera_node/image/compressed", CompressedImage, self.find_marker, buff_size=921600,queue_size=1)
+        self.sub_image = rospy.Subscriber("/duckiesam/camera_node/image/compressed", CompressedImage, self.find_marker, buff_size=921600,queue_size=1)
         self.pub_image = rospy.Publisher('~image', Image, queue_size = 1)
-        self.infosub = rospy.Subscriber("/duckiesam/camera_node/camera_info", CameraInfo, self.get_camera_info, queue_size=1)
+        self.sub_info = rospy.Subscriber("/duckiesam/camera_node/camera_info", CameraInfo, self.get_camera_info, queue_size=1)
+	self.pub_move = rospy.Publisher('/duckiesam/joy_mapper_node/car_cmd', Twist2DStamped, queue_size = 1)
+	#self.sub_move = rospy.Subscriber("/duckiesam/joy_mapper_node/car_cmd", self.move Twist2DStamped, queue_size = 10)
+
+	#values for detecting marker
+	self.starting = 0
         self.camerainfo = PinholeCameraModel()
         self.bridge = CvBridge()
         self.gotimage = False
         self.imagelast = None
         self.processedImg = None
         self.detected = False
+
+	#values for calculating pose of robot
         self.solP = False
         self.rotationvector = None
         self.translationvector = None
         self.axis = np.float32([[0.0125,0,0], [0,0.0125,0], [0,0,-0.0375]]).reshape(-1,3)
         self.distance = None
+	self.angle_f = None
+	self.angle_l = None
+
+	#values for driving the robot
         self.maxdistance = 0.2
+	self.speedN = 0
+	self.rotationN = 0
+	self.mindistance = 0.01
 
     #get camera info for pinhole camera model
     def get_camera_info(self, camera_msg):
@@ -51,11 +67,13 @@ class MyNode(DTROS):
         if self.gotimage == False:
             self.gotimage = True
             
+	#self.starting = rospy.Time.now()
         gray = cv2.cvtColor(self.imagelast, cv2.COLOR_BGR2GRAY)
         
         detection, corners = cv2.findCirclesGrid(gray,(7,3))
         
         self.processedImg = self.imagelast.copy()
+	cmd = Twist2DStamped()
         
         if detection:
             cv2.drawChessboardCorners(self.processedImg, (7,3), corners, detection)
@@ -71,9 +89,20 @@ class MyNode(DTROS):
             self.gradient(twoone)
             self.detected = self.solP
 	    self.find_distance()
+	    
+	    if self.distance > self.maxdistance:
+		cmd.v = 0.1
+		cmd.omega = 0
+	    else:
+		cmd.v = 0
+		cmd.omega = 0
+	    self.pub_move.publish(cmd)
             
         else:
             self.detected = False
+	    cmd.v = 0
+	    cmd.omega = 0
+	    self.pub_move.publish(cmd)
             
     #step 2 : makes matrix for 3d original shape
     def originalmatrix(self):
@@ -109,30 +138,36 @@ class MyNode(DTROS):
         rospy.loginfo("%s" % textdistance)
         self.pub.publish(textdistance)
         
-    #step 5 : use joy mapper to controll the robot
-    def move(self):
-        #if detected = LF false, if not = LF true
-        
+    #step 5 : use joy mapper to control the robot
+    #def move(self, cmd_msg):
+       # robot_before = Twist2DStamped()
+	#robot_before = cmd_msg
+	#robot_before.header.stamp = rospy.Time.now()
+	
         #if distance = 0, wait
         
         #if distance > 0 and length.listmovement > 5
+	#if self.detected:
+	    
+	#or I could draw the line using the center point of marker and set is as the line to follow
         
     
     def run(self):
-        # publish message every 1 second
-        rate = rospy.Rate(4) # 1Hz
+        # publish message every 1/4 second
+        rate = rospy.Rate(10) # 1Hz
         while not rospy.is_shutdown():
             if self.gotimage:
-                message = "%s" % os.environ['VEHICLE_NAME']
+		message = "Detected"
                 if self.detected:
                     img_out = self.bridge.cv2_to_imgmsg(self.processedImg, "bgr8")
                     self.pub_image.publish(img_out)
-                    rospy.loginfo("Detected '%s'" % message)
+		    
+                    rospy.loginfo("%s" % message)
                     self.pub.publish(message)
                 else:
                     img_out = self.bridge.cv2_to_imgmsg(self.imagelast, "bgr8")
                     self.pub_image.publish(img_out)
-                    rospy.loginfo("Not detected '%s'" % message)
+                    rospy.loginfo("Not %s" % message)
                     self.pub.publish(message)
             
             rate.sleep()
@@ -148,5 +183,6 @@ if __name__ == '__main__':
         rospy.spin()
     except KeyboardInterrupt:
         print("shutting down")
+	
     cv2.destroyAllWindows()
     

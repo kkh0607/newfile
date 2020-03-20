@@ -26,11 +26,11 @@ class MyNode(DTROS):
         self.sub_image = rospy.Subscriber("/duckiesam/camera_node/image/compressed", CompressedImage, self.find_marker, buff_size=921600,queue_size=1)
         self.pub_image = rospy.Publisher('~image', Image, queue_size = 1)
         self.sub_info = rospy.Subscriber("/duckiesam/camera_node/camera_info", CameraInfo, self.get_camera_info, queue_size=1)
-	self.pub_move = rospy.Publisher('/duckiesam/joy_mapper_node/car_cmd', Twist2DStamped, queue_size = 1)
-	#self.sub_move = rospy.Subscriber("/duckiesam/joy_mapper_node/car_cmd", self.move Twist2DStamped, queue_size = 10)
+        self.pub_move = rospy.Publisher('/duckiesam/joy_mapper_node/car_cmd', Twist2DStamped, queue_size = 1)
+        #self.sub_move = rospy.Subscriber("/duckiesam/joy_mapper_node/car_cmd", self.move Twist2DStamped, queue_size = 10)
 
 	#values for detecting marker
-	self.starting = 0
+        self.starting = 0
         self.camerainfo = PinholeCameraModel()
         self.bridge = CvBridge()
         self.gotimage = False
@@ -44,14 +44,14 @@ class MyNode(DTROS):
         self.translationvector = None
         self.axis = np.float32([[0.0125,0,0], [0,0.0125,0], [0,0,-0.0375]]).reshape(-1,3)
         self.distance = None
-	self.angle_f = None
-	self.angle_l = None
+        self.angle_f = None
+        self.angle_l = None
 
 	#values for driving the robot
         self.maxdistance = 0.2
-	self.speedN = 0
-	self.rotationN = 0
-	self.mindistance = 0.01
+        self.speedN = 0
+        self.rotationN = 0
+        self.mindistance = 0.01
 
     #get camera info for pinhole camera model
     def get_camera_info(self, camera_msg):
@@ -73,7 +73,7 @@ class MyNode(DTROS):
         detection, corners = cv2.findCirclesGrid(gray,(7,3))
         
         self.processedImg = self.imagelast.copy()
-	cmd = Twist2DStamped()
+        cmd = Twist2DStamped()
         
         if detection:
             cv2.drawChessboardCorners(self.processedImg, (7,3), corners, detection)
@@ -88,21 +88,21 @@ class MyNode(DTROS):
             self.originalmatrix()
             self.gradient(twoone)
             self.detected = self.solP
-	    self.find_distance()
+            self.find_distance()
 	    
-	    if self.distance > self.maxdistance:
-		cmd.v = 0.1
-		cmd.omega = 0
-	    else:
-		cmd.v = 0
-		cmd.omega = 0
-	    self.pub_move.publish(cmd)
+            if self.distance > self.maxdistance:
+                cmd.v = 0.1
+                cmd.omega = 0
+            else:
+                cmd.v = 0
+                cmd.omega = 0
+            self.pub_move.publish(cmd)
             
         else:
             self.detected = False
-	    cmd.v = 0
-	    cmd.omega = 0
-	    self.pub_move.publish(cmd)
+            cmd.v = 0
+            cmd.omega = 0
+            self.pub_move.publish(cmd)
             
     #step 2 : makes matrix for 3d original shape
     def originalmatrix(self):
@@ -133,6 +133,7 @@ class MyNode(DTROS):
         tvz = self.translationvector[2]
         
         self.distance = math.sqrt(tvx*tvx + tvy*tvy + tvz*tvz)
+        self.angle_f = np.arctan2(tvx,tvz)
         
         textdistance = "Distance = %s" % self.distance
         rospy.loginfo("%s" % textdistance)

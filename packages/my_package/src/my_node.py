@@ -134,8 +134,12 @@ class MyNode(DTROS):
         
         self.distance = math.sqrt(tvx*tvx + tvy*tvy + tvz*tvz)
         self.angle_f = np.arctan2(tvx,tvz)
+
+	R, _ = cv2.Rodrigues(self.rotationvector)
+	R_inverse = np.transpose(R)
+	self.angle_l = np.arctan2(-R_inverse[2,0], math.sqrt(R_inverse[2,1]*R_inverse[2,1] + R_inverse[2,2]*R_inverse[2,1]))
         
-        textdistance = "Distance = %s" % self.distance
+        textdistance = "Distance = %s, Angle of Follower = %s, Angle of Leader = %s" % self.distance, self.angle_f, self.angle_l
         rospy.loginfo("%s" % textdistance)
         self.pub.publish(textdistance)
         

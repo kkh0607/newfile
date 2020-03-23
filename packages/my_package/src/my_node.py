@@ -21,16 +21,16 @@ class MyNode(DTROS):
         # initialize the DTROS parent class
         super(MyNode, self).__init__(node_name=node_name)
 
-        # construct publisher and subsriber
+    # construct publisher and subsriber
         self.pub = rospy.Publisher('chatter', String, queue_size=10)
         self.sub_image = rospy.Subscriber("/duckiesam/camera_node/image/compressed", CompressedImage, self.find_marker, buff_size=921600,queue_size=1)
         self.pub_image = rospy.Publisher('~image', Image, queue_size = 1)
         self.sub_info = rospy.Subscriber("/duckiesam/camera_node/camera_info", CameraInfo, self.get_camera_info, queue_size=1)
         self.pub_move = rospy.Publisher('/duckiesam/joy_mapper_node/car_cmd', Twist2DStamped, queue_size = 1)
-        #self.sub_move = rospy.Subscriber("/duckiesam/joy_mapper_node/car_cmd", self.move Twist2DStamped, queue_size = 10)
 
 	#values for detecting marker
         self.starting = 0
+        self.ending = 0
         self.camerainfo = PinholeCameraModel()
         self.bridge = CvBridge()
         self.gotimage = False
@@ -50,8 +50,23 @@ class MyNode(DTROS):
 	#values for driving the robot
         self.maxdistance = 0.2
         self.speedN = 0
+        self.e_vB = 0
         self.rotationN = 0
-        self.mindistance = 0.01
+        self.mindistance = 0.1
+        self.d_e = 0 #distance error
+        self.d_e_1 = 0
+        self.d_e_2 = 0
+        self.y2 = 0
+        self.controltime = rospy.Time.now()
+        self.Kp = 0
+        self.Ki = 0
+        self.Kd = 0
+        self.I = 0
+        self.Rp = 0
+        self.Ri = 0
+        self.Rd = 0
+        self.RI = 0
+        
 
     #get camera info for pinhole camera model
     def get_camera_info(self, camera_msg):
@@ -66,15 +81,18 @@ class MyNode(DTROS):
             print(e)
         if self.gotimage == False:
             self.gotimage = True
-            
-	#self.starting = rospy.Time.now()
+         
+        #time checking
+        self.starting = rospy.Time.now()
+        from_last_image = (self.starting - self.ending).to_sec()
+        
         gray = cv2.cvtColor(self.imagelast, cv2.COLOR_BGR2GRAY)
         
         detection, corners = cv2.findCirclesGrid(gray,(7,3))
         
         self.processedImg = self.imagelast.copy()
         cmd = Twist2DStamped()
-        
+        cmd.header.stamp = self.starting
         if detection:
             cv2.drawChessboardCorners(self.processedImg, (7,3), corners, detection)
             self.detected = True
@@ -89,17 +107,11 @@ class MyNode(DTROS):
             self.gradient(twoone)
             self.detected = self.solP
             self.find_distance()
-	    
-            if self.distance > self.maxdistance:
-                cmd.v = 0.1
-                cmd.omega = 0
-            else:
-                cmd.v = 0
-                cmd.omega = 0
-            self.pub_move.publish(cmd)
-            
+            self.move(self.y2, self.angle_l, self.speedN, self.distance)
+            self.ending = rospy.Time.now()
         else:
             self.detected = False
+            self.ending = rospy.Time.now()
             cmd.v = 0
             cmd.omega = 0
             self.pub_move.publish(cmd)
@@ -135,38 +147,68 @@ class MyNode(DTROS):
         self.distance = math.sqrt(tvx*tvx + tvy*tvy + tvz*tvz)
         self.angle_f = np.arctan2(tvx,tvz)
 
-	R, _ = cv2.Rodrigues(self.rotationvector)
-	R_inverse = np.transpose(R)
-	self.angle_l = np.arctan2(-R_inverse[2,0], math.sqrt(R_inverse[2,1]*R_inverse[2,1] + R_inverse[2,2]*R_inverse[2,1]))
+        R, _ = cv2.Rodrigues(self.rotationvector)
+        R_inverse = np.transpose(R)
+        self.angle_l = np.arctan2(-R_inverse[2,0], math.sqrt(R_inverse[2,1]*R_inverse[2,1] + R_inverse[2,2]*R_inverse[2,1]))
+        
+        T = np.array([-sin(self.angle_l), cos(self.angle_l)])
+        tvecW = -np.dot(R_inverse, self.translationvector)
+        x_y = np.array([tvecW[2], tvecW[0]])
+        
+        self.y2 = -np.dot(T,x_y) - 0.2*sin(self.angle_l)
         
         textdistance = "Distance = %s, Angle of Follower = %s, Angle of Leader = %s" % self.distance, self.angle_f, self.angle_l
         rospy.loginfo("%s" % textdistance)
         self.pub.publish(textdistance)
         
-    #step 5 : use joy mapper to control the robot
-    #def move(self, cmd_msg):
-       # robot_before = Twist2DStamped()
-	#robot_before = cmd_msg
-	#robot_before.header.stamp = rospy.Time.now()
-	
-        #if distance = 0, wait
+    #step 5 : use joy mapper to control the robot PID controller
+    def move(self, y_to, angle_to, vB, d):
+        #y_to is needed y value to be parallel to leader's center line
+        #angle_to is angle needed to rotate
+        #vB is velocity before
+        #d_e is distance between required position and now position
+        cmd = Twist2DStamped()
         
-        #if distance > 0 and length.listmovement > 5
-	#if self.detected:
-	    
-	#or I could draw the line using the center point of marker and set is as the line to follow
-        
+        time = rospy.Time.now()
+        cmd.header.stamp = time
+        dt = (time - controltime).to_sec()
+        if dt > 3:
+            if d_e < 0:
+                cmd.v = 0
+                cmd.omega = 0
+        else:
+            self.d_e = d - self.maxdistance
+            error_d = (self.d_e - self.d_e_1)/dt
+            errorB = (self.d_e_1 - self.d_e_2)/dt
+            
+            e_v = error_d - errorB
+            
+            P = self.Kp*(e_v)
+            self.I = self.I + self.Ki*(e_v + self.e_vB)*dt
+            D = self.Kd*(e_v + e_vB)/dt
+            
+            self.speedN = P + self.I + D
+            
+            self.rotationN = self.Rp*(y_to) + self.Ri*(angle_to) + self.Rd*(np.sin(angle_to))
+            
+            cmd.v = self.speedN
+            cmd.omega = self.rotationN
+
+        self.pub_move.publish(cmd)
+        self.e_vB = e_v
+        self.d_e_2 = self.d_e_1
+        self.d_e_1 = d_e
+        self.controltime = time
     
     def run(self):
         # publish message every 1/4 second
         rate = rospy.Rate(10) # 1Hz
         while not rospy.is_shutdown():
             if self.gotimage:
-		message = "Detected"
+                message = "Detected"
                 if self.detected:
                     img_out = self.bridge.cv2_to_imgmsg(self.processedImg, "bgr8")
                     self.pub_image.publish(img_out)
-		    
                     rospy.loginfo("%s" % message)
                     self.pub.publish(message)
                 else:
@@ -182,7 +224,7 @@ if __name__ == '__main__':
     # create the node
     node = MyNode(node_name='my_node')
     # run node
-    node.run()
+    #node.run()
     # keep spinning
     try:
         rospy.spin()

@@ -54,18 +54,17 @@ class MyNode(DTROS):
         self.rotationN = 0
         self.mindistance = 0.1
         self.d_e = 0 #distance error
-        self.d_e_1 = 0
-        self.d_e_2 = 0
+        self.d_e_1 = 5
+        self.d_e_2 = 10
         self.y2 = 0
         self.controltime = rospy.Time.now()
-        self.Kp = 0
-        self.Ki = 0
+        self.Kp = 1
+        self.Ki = 0.1
         self.Kd = 0
         self.I = 0
-        self.Rp = 0
-        self.Ri = 0
-        self.Rd = 0
-        self.RI = 0
+        self.Rp = 1
+        self.Ri = 1
+        self.Rd = 1
         
 
     #get camera info for pinhole camera model
@@ -84,7 +83,7 @@ class MyNode(DTROS):
          
         #time checking
         self.starting = rospy.Time.now()
-        from_last_image = (self.starting - self.ending).to_sec()
+        #from_last_image = (self.starting - self.ending).to_sec()
         
         gray = cv2.cvtColor(self.imagelast, cv2.COLOR_BGR2GRAY)
         
@@ -107,7 +106,7 @@ class MyNode(DTROS):
             self.gradient(twoone)
             self.detected = self.solP
             self.find_distance()
-            self.move(self.y2, self.angle_l, self.speedN, self.distance)
+            self.move(self.y2, self.angle_l, self.distance)
             self.ending = rospy.Time.now()
         else:
             self.detected = False
@@ -136,6 +135,8 @@ class MyNode(DTROS):
             self.processedImg = cv2.line(self.processedImg, tuple(imgpts[10].ravel()), tuple(pointaxis[0].ravel()), (255, 0, 0), 2)
             self.processedImg = cv2.line(self.processedImg, tuple(imgpts[10].ravel()), tuple(pointaxis[1].ravel()), (0, 255, 0), 2)
             self.processedImg = cv2.line(self.processedImg, tuple(imgpts[10].ravel()), tuple(pointaxis[2].ravel()), (0, 0, 255), 3)
+	    #textdistance = "x = %s, y = %s, z = %s" % (self.distance, self.angle_f, self.angle_l, self.y2)
+            #rospy.loginfo("%s" % textdistance)
 
     #step 4 : find distance between robot and following robot print out distance and time
     def find_distance(self):
@@ -145,24 +146,24 @@ class MyNode(DTROS):
         tvz = self.translationvector[2]
         
         self.distance = math.sqrt(tvx*tvx + tvy*tvy + tvz*tvz)
-        self.angle_f = np.arctan2(tvx,tvz)
+        self.angle_f = np.arctan2(tvx[0],tvz[0])
 
         R, _ = cv2.Rodrigues(self.rotationvector)
         R_inverse = np.transpose(R)
-        self.angle_l = np.arctan2(-R_inverse[2,0], math.sqrt(R_inverse[2,1]*R_inverse[2,1] + R_inverse[2,2]*R_inverse[2,1]))
+        self.angle_l = np.arctan2(-R_inverse[2,0], math.sqrt(R_inverse[2,1]**2 + R_inverse[2,2]**2))
         
-        T = np.array([-sin(self.angle_l), cos(self.angle_l)])
+        T = np.array([-np.sin(self.angle_l), np.cos(self.angle_l)])
         tvecW = -np.dot(R_inverse, self.translationvector)
-        x_y = np.array([tvecW[2], tvecW[0]])
+        x_y = np.array([tvz[0], tvx[0]])
         
-        self.y2 = -np.dot(T,x_y) - 0.2*sin(self.angle_l)
+        self.y2 = -np.dot(T,x_y) - 0.01*np.sin(self.angle_l)
         
-        textdistance = "Distance = %s, Angle of Follower = %s, Angle of Leader = %s" % self.distance, self.angle_f, self.angle_l
+        textdistance = "Distance = %s, Angle of Follower = %s, Angle of Leader = %s, y = %s" % (self.distance, self.angle_f, self.angle_l, self.y2)
         rospy.loginfo("%s" % textdistance)
-        self.pub.publish(textdistance)
+        #self.pub.publish(textdistance)
         
     #step 5 : use joy mapper to control the robot PID controller
-    def move(self, y_to, angle_to, vB, d):
+    def move(self, y_to, angle_to, d):
         #y_to is needed y value to be parallel to leader's center line
         #angle_to is angle needed to rotate
         #vB is velocity before
@@ -171,9 +172,9 @@ class MyNode(DTROS):
         
         time = rospy.Time.now()
         cmd.header.stamp = time
-        dt = (time - controltime).to_sec()
+        dt = (time - self.controltime).to_sec()
         if dt > 3:
-            if d_e < 0:
+            if d < 0.19:
                 cmd.v = 0
                 cmd.omega = 0
         else:
@@ -185,7 +186,7 @@ class MyNode(DTROS):
             
             P = self.Kp*(e_v)
             self.I = self.I + self.Ki*(e_v + self.e_vB)*dt
-            D = self.Kd*(e_v + e_vB)/dt
+            D = self.Kd*(e_v + self.e_vB)/dt
             
             self.speedN = P + self.I + D
             
@@ -194,10 +195,16 @@ class MyNode(DTROS):
             cmd.v = self.speedN
             cmd.omega = self.rotationN
 
+	    self.e_vB = e_v
+            self.d_e_2 = self.d_e_1
+            self.d_e_1 = self.d_e
+	    if self.d_e < 0:
+                cmd.v = 0
+                cmd.omega = 0
+
+	textdistance = "Velocity = %s, Rotation = %s" % (cmd.v, cmd.omega)
+        rospy.loginfo("%s" % textdistance)
         self.pub_move.publish(cmd)
-        self.e_vB = e_v
-        self.d_e_2 = self.d_e_1
-        self.d_e_1 = d_e
         self.controltime = time
     
     def run(self):
@@ -210,12 +217,12 @@ class MyNode(DTROS):
                     img_out = self.bridge.cv2_to_imgmsg(self.processedImg, "bgr8")
                     self.pub_image.publish(img_out)
                     rospy.loginfo("%s" % message)
-                    self.pub.publish(message)
+                    #self.pub.publish(message)
                 else:
                     img_out = self.bridge.cv2_to_imgmsg(self.imagelast, "bgr8")
                     self.pub_image.publish(img_out)
                     rospy.loginfo("Not %s" % message)
-                    self.pub.publish(message)
+                    #self.pub.publish(message)
             
             rate.sleep()
 
@@ -224,7 +231,7 @@ if __name__ == '__main__':
     # create the node
     node = MyNode(node_name='my_node')
     # run node
-    #node.run()
+    node.run()
     # keep spinning
     try:
         rospy.spin()

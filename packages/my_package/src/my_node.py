@@ -95,7 +95,7 @@ class MyNode(DTROS):
         if detection:
             cv2.drawChessboardCorners(self.processedImg, (7,3), corners, detection)
             self.detected = True
-            
+            #self.controltime = rospy.Time.now()
             twoone = []
             for i in range(0, 21):
                 point = [corners[i][0][0], corners[i][0][1]]
@@ -166,15 +166,14 @@ class MyNode(DTROS):
     def move(self, y_to, angle_to, d):
         #y_to is needed y value to be parallel to leader's center line
         #angle_to is angle needed to rotate
-        #vB is velocity before
-        #d_e is distance between required position and now position
+        #d is distance between required position and now position
         cmd = Twist2DStamped()
         
         time = rospy.Time.now()
         cmd.header.stamp = time
         dt = (time - self.controltime).to_sec()
         if dt > 3:
-            if d < 0.19:
+            if d < self.maxdistance:
                 cmd.v = 0
                 cmd.omega = 0
         else:
@@ -185,7 +184,7 @@ class MyNode(DTROS):
             e_v = error_d - errorB
             
             P = self.Kp*(e_v)
-            self.I = self.I + self.Ki*(e_v + self.e_vB)*dt
+            self.I = self.I + self.Ki*(e_v + self.e_vB)/2*dt
             D = self.Kd*(e_v + self.e_vB)/dt
             
             self.speedN = P + self.I + D
@@ -195,14 +194,14 @@ class MyNode(DTROS):
             cmd.v = self.speedN
             cmd.omega = self.rotationN
 
-	    self.e_vB = e_v
+            self.e_vB = e_v
             self.d_e_2 = self.d_e_1
             self.d_e_1 = self.d_e
-	    if self.d_e < 0:
+            if self.d_e < 0.05 or self.speedN < 0:
                 cmd.v = 0
                 cmd.omega = 0
 
-	textdistance = "Velocity = %s, Rotation = %s" % (cmd.v, cmd.omega)
+        textdistance = "Velocity = %s, Rotation = %s" % (cmd.v, cmd.omega)
         rospy.loginfo("%s" % textdistance)
         self.pub_move.publish(cmd)
         self.controltime = time

@@ -92,6 +92,7 @@ class MyNode(DTROS):
         self.processedImg = self.imagelast.copy()
         cmd = Twist2DStamped()
         cmd.header.stamp = self.starting
+
         if detection:
             cv2.drawChessboardCorners(self.processedImg, (7,3), corners, detection)
             self.detected = True
@@ -105,11 +106,15 @@ class MyNode(DTROS):
             self.originalmatrix()
             self.gradient(twoone)
             self.detected = self.solP
+	    img_out = self.bridge.cv2_to_imgmsg(self.processedImg, "bgr8")
+            self.pub_image.publish(img_out)
             self.find_distance()
             self.move(self.y2, self.angle_l, self.distance)
             self.ending = rospy.Time.now()
         else:
             self.detected = False
+	    img_out = self.bridge.cv2_to_imgmsg(gray, "bgr8")
+            self.pub_image.publish(img_out)
             self.ending = rospy.Time.now()
             cmd.v = 0
             cmd.omega = 0
@@ -145,7 +150,7 @@ class MyNode(DTROS):
         tvy = self.translationvector[1]
         tvz = self.translationvector[2]
         
-        self.distance = math.sqrt(tvx*tvx + tvy*tvy + tvz*tvz)
+        self.distance = math.sqrt(tvx*tvx + tvz*tvz)
         self.angle_f = np.arctan2(tvx[0],tvz[0])
 
         R, _ = cv2.Rodrigues(self.rotationvector)
@@ -205,32 +210,12 @@ class MyNode(DTROS):
         rospy.loginfo("%s" % textdistance)
         self.pub_move.publish(cmd)
         self.controltime = time
-    
-    def run(self):
-        # publish message every 1/4 second
-        rate = rospy.Rate(10) # 1Hz
-        while not rospy.is_shutdown():
-            if self.gotimage:
-                message = "Detected"
-                if self.detected:
-                    img_out = self.bridge.cv2_to_imgmsg(self.processedImg, "bgr8")
-                    self.pub_image.publish(img_out)
-                    rospy.loginfo("%s" % message)
-                    #self.pub.publish(message)
-                else:
-                    img_out = self.bridge.cv2_to_imgmsg(self.imagelast, "bgr8")
-                    self.pub_image.publish(img_out)
-                    rospy.loginfo("Not %s" % message)
-                    #self.pub.publish(message)
-            
-            rate.sleep()
 
 
 if __name__ == '__main__':
     # create the node
     node = MyNode(node_name='my_node')
-    # run node
-    node.run()
+    
     # keep spinning
     try:
         rospy.spin()

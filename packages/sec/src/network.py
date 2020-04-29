@@ -14,15 +14,15 @@ from cv_bridge import CvBridge, CvBridgeError
 from image_geometry import PinholeCameraModel
 from duckietown_msgs.msg import Twist2DStamped
 
-class FollowerDrive(DTROS):
+class Network(DTROS):
     def __init__(self, node_name):
     # initialize the DTROS parent class
-    super(FollowerDrive, self).__init__(node_name=node_name)
+    super(Network, self).__init__(node_name=node_name)
 
 if __name__ == '__main__':
     # create the node
-    node = FollowerDrive(node_name='follower_drive')
-    
+    node = Network(node_name='network')
+
     # keep spinning
     try:
         rospy.spin()

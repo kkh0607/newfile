@@ -66,7 +66,10 @@ class MyNode(DTROS):
         self.Ri = 1
         self.Rd = 1
         
-
+    def initialvalues(self):
+        
+        
+        
     #get camera info for pinhole camera model
     def get_camera_info(self, camera_msg):
         self.camerainfo.fromCameraInfo(camera_msg)
@@ -106,14 +109,14 @@ class MyNode(DTROS):
             self.originalmatrix()
             self.gradient(twoone)
             self.detected = self.solP
-	    img_out = self.bridge.cv2_to_imgmsg(self.processedImg, "bgr8")
+            img_out = self.bridge.cv2_to_imgmsg(self.processedImg, "bgr8")
             self.pub_image.publish(img_out)
             self.find_distance()
             self.move(self.y2, self.angle_l, self.distance)
             self.ending = rospy.Time.now()
         else:
             self.detected = False
-	    img_out = self.bridge.cv2_to_imgmsg(gray, "bgr8")
+            img_out = self.bridge.cv2_to_imgmsg(gray, "bgr8")
             self.pub_image.publish(img_out)
             self.ending = rospy.Time.now()
             cmd.v = 0

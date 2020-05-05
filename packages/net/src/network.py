@@ -17,7 +17,8 @@ from duckietown_msgs.msg import Twist2DStamped
 class Network(DTROS):
     def __init__(self, node_name):
     # initialize the DTROS parent class
-    super(Network, self).__init__(node_name=node_name)
+        super(Network, self).__init__(node_name=node_name)
+        
 
 if __name__ == '__main__':
     # create the node

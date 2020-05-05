@@ -18,9 +18,13 @@ from duckietown_msgs.msg import Twist2DStamped
 class LeaderDrive(DTROS):
     def __init__(self, node_name):
     # initialize the DTROS parent class
-    super(LeaderDrive, self).__init__(node_name=node_name)
+        super(LeaderDrive, self).__init__(node_name=node_name)
     
     def bagout(self):
+        #publish bag
+        
+    def move(self):
+        #publish movement
 
 if __name__ == '__main__':
     # create the node

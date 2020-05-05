@@ -15,11 +15,16 @@ class DriveCircle(DTROS):
     # initialize the DTROS parent class
         super(DriveCircle, self).__init__(node_name=node_name)
     
-        self.pub_move = rospy.Publisher('/joy_mapper_node/car_cmd', Twist2DStamped, queue_size = 1)
-        #self.ready = rospy.Subscriber('/duckiesam/my_node/detection', self.drive, queue_size=1)
+        self.pub_move = rospy.Publisher('~car_cmd', Twist2DStamped, queue_size = 1)
+        #self.ready = rospy.Subscriber('/duckie99/my_node/detection', self.drive, queue_size=1)
         self.startingtime = rospy.Time.now()
         self.defaultvelocity = 0.22
         self.defaultomega = 0.0
+	#init
+	car_control_msg = Twist2DStamped()
+        car_control_msg.v = 0
+        car_control_msg.omega = 0
+        self.pub_move.publish(car_control_msg)
         
 
     def drive_line(self):
@@ -27,14 +32,14 @@ class DriveCircle(DTROS):
         car_control_msg.v = self.defaultvelocity
         car_control_msg.omega = self.defaultomega
         self.pub_move.publish(car_control_msg)
-        rospy.sleep(2)
-        car_control_msg.v = 0.0
-        self.pub_move.publish(car_control_msg)
+        rospy.sleep(5)
+        #car_control_msg.v = 0.0
+        #self.pub_move.publish(car_control_msg)
      
     def turn_right(self):
         car_control_msg = Twist2DStamped()
         car_control_msg.v = 0.0
-        car_control_msg.omega = 1.0
+        car_control_msg.omega = 1.5708
         self.pub_move.publish(car_control_msg)
         rospy.sleep(1)
     
@@ -50,18 +55,14 @@ class DriveCircle(DTROS):
         car_control_msg.v = 0
         car_control_msg.omega = 0
         self.pub_move.publish(car_control_msg)
+	rospy.sleep(10)
 
     def drive(self):
-        self.drive_line()
-        self.turn_right()
-        self.drive_line()
-        self.turn_right()
-        self.drive_line()
-        self.turn_right()
-        self.drive_line()
-        self.turn_right()
-        self.stop()
-        rospy.sleep(5)
+	while not rospy.is_shutdown():
+            self.drive_line()
+            self.turn_right()
+	    self.stop()
+        
 
         
 if __name__ == '__main__':

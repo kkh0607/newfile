@@ -25,6 +25,7 @@ class DriveCircle(DTROS):
         car_control_msg.v = 0
         car_control_msg.omega = 0
         self.pub_move.publish(car_control_msg)
+	rospy.sleep(1)
         
 
     def drive_line(self):
@@ -39,7 +40,7 @@ class DriveCircle(DTROS):
     def turn_right(self):
         car_control_msg = Twist2DStamped()
         car_control_msg.v = 0.0
-        car_control_msg.omega = 1.5708
+        car_control_msg.omega = 1.0
         self.pub_move.publish(car_control_msg)
         rospy.sleep(1)
     

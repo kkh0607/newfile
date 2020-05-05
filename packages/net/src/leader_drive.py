@@ -19,12 +19,25 @@ class LeaderDrive(DTROS):
     def __init__(self, node_name):
     # initialize the DTROS parent class
         super(LeaderDrive, self).__init__(node_name=node_name)
-    
-    def bagout(self):
-        #publish bag
+        self.count = 0
+        self.max = 100
+        self.on = 0
+        self.pub_move = rospy.Publisher("/duckiesam/joy_mapper_node/car_cmd", Twist2DStamped, queue_size = 1)
         
     def move(self):
         #publish movement
+        cmd = Twist2DStamped()
+        cmd.header.stamp = rospy.Time.now()
+        
+    
+    def start(self):
+        self.sub_move = rospy.Subscriber("/duckiesam/joy_mapper_node/car_cmd", Twist2DStamped, self.bagout queue_size = 1)
+    
+    def bagout(self):
+        #publish bag
+        bag = rosbag.Bag('bag'+self.count + '.bag','w')
+        
+    
 
 if __name__ == '__main__':
     # create the node

@@ -7,12 +7,13 @@ import sys
 import rospy
 import math
 import time
+from mutex import mutex
 from duckietown import DTROS
 from std_msgs.msg import String
 from sensor_msgs.msg import CompressedImage, CameraInfo, Image
 from cv_bridge import CvBridge, CvBridgeError
 from image_geometry import PinholeCameraModel
-from duckietown_msgs.msg import Twist2DStamped
+from duckietown_msgs.msg import Twist2DStamped, BoolStamped
 
 
 class MyNode(DTROS):
@@ -22,11 +23,12 @@ class MyNode(DTROS):
         super(MyNode, self).__init__(node_name=node_name)
 
     # construct publisher and subsriber
-        self.pub = rospy.Publisher('chatter', String, queue_size=10)
+        self.pub = rospy.Publisher('~chatter', String, queue_size=10)
         self.sub_image = rospy.Subscriber("/duckiesam/camera_node/image/compressed", CompressedImage, self.find_marker, buff_size=921600,queue_size=1)
-        self.pub_image = rospy.Publisher('~image', Image, queue_size = 1)
+        self.pub_image = rospy.Publisher('/duckiesam/camera_node/image', Image, queue_size = 1)
         self.sub_info = rospy.Subscriber("/duckiesam/camera_node/camera_info", CameraInfo, self.get_camera_info, queue_size=1)
-        self.pub_move = rospy.Publisher('/duckiesam/joy_mapper_node/car_cmd', Twist2DStamped, queue_size = 1)
+        self.pub_move = rospy.Publisher("/duckiesam/joy_mapper_node/car_cmd", Twist2DStamped, queue_size = 1)
+        self.leader_detected = rospy.Publisher("~detection",BoolStamped, queue_size=1)
 
 	#values for detecting marker
         self.starting = 0
@@ -67,7 +69,24 @@ class MyNode(DTROS):
         self.Rd = 1
         
     def initialvalues(self):
-        
+        self.default_v = 0.22
+        self.maxdistance = 0.3
+        self.speedN = 0
+        self.e_vB = 0
+        self.rotationN = 0
+        self.mindistance = 0.2
+        self.d_e = 0 #distance error
+        self.d_e_1 = 5
+        self.d_e_2 = 10
+        self.y2 = 0
+        self.controltime = rospy.Time.now()
+        self.Kp = 1
+        self.Ki = 0.1
+        self.Kd = 0
+        self.I = 0
+        self.Rp = 1
+        self.Ri = 1
+        self.Rd = 1
         
         
     #get camera info for pinhole camera model
@@ -112,7 +131,7 @@ class MyNode(DTROS):
             img_out = self.bridge.cv2_to_imgmsg(self.processedImg, "bgr8")
             self.pub_image.publish(img_out)
             self.find_distance()
-            self.move(self.y2, self.angle_l, self.distance)
+            ###self.move(self.y2, self.angle_l, self.distance)
             self.ending = rospy.Time.now()
         else:
             self.detected = False
@@ -121,7 +140,7 @@ class MyNode(DTROS):
             self.ending = rospy.Time.now()
             cmd.v = 0
             cmd.omega = 0
-            self.pub_move.publish(cmd)
+            ####self.pub_move.publish(cmd)
             
     #step 2 : makes matrix for 3d original shape
     def originalmatrix(self):

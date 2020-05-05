@@ -19,6 +19,8 @@ class FollowerDrive(DTROS):
     def __init__(self, node_name):
     # initialize the DTROS parent class
         super(FollowerDrive, self).__init__(node_name=node_name)
+        self.count = 0
+        self.max = 100
         
     def bagin(self):
         #get the bags

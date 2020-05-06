@@ -16,17 +16,17 @@ class DriveCircle(DTROS):
         super(DriveCircle, self).__init__(node_name=node_name)
 
         self.pub_move = rospy.Publisher('/duckieking/joy_mapper_node/car_cmd', Twist2DStamped, queue_size = 1)
-	self.spub_move = rospy.Publisher('/duckiesam/joy_mapper_node/car_cmd', Twist2DStamped, queue_size = 1)
+        self.spub_move = rospy.Publisher('/duckiesam/joy_mapper_node/car_cmd', Twist2DStamped, queue_size = 1)
         #self.ready = rospy.Subscriber('/duckie99/my_node/detection', self.drive, queue_size=1)
         self.startingtime = rospy.Time.now()
         self.defaultvelocity = 0.22
         self.defaultomega = 0.0
 	#init
-	car_control_msg = Twist2DStamped()
+        car_control_msg = Twist2DStamped()
         car_control_msg.v = 0
         car_control_msg.omega = 0
         self.pub_move.publish(car_control_msg)
-	rospy.sleep(1)
+        rospy.sleep(1)
         
 
     def drive_line(self):
@@ -34,8 +34,8 @@ class DriveCircle(DTROS):
         car_control_msg.v = self.defaultvelocity
         car_control_msg.omega = self.defaultomega
         self.pub_move.publish(car_control_msg)
-	rospy.sleep(4)
-	car_control_msg.v = 0.0
+        rospy.sleep(4)
+        car_control_msg.v = 0.0
         self.pub_move.publish(car_control_msg)
     
     def drive_line2(self):
@@ -43,7 +43,7 @@ class DriveCircle(DTROS):
         car_control_msg.v = self.defaultvelocity
         car_control_msg.omega = self.defaultomega
         self.spub_move.publish(car_control_msg)
-	rospy.sleep(4)
+        rospy.sleep(4)
  
         
      
@@ -66,14 +66,14 @@ class DriveCircle(DTROS):
         car_control_msg.v = 0
         car_control_msg.omega = 0
         self.pub_move.publish(car_control_msg)
-	self.spub_move.publish(car_control_msg)
-	rospy.sleep(50)
+        self.spub_move.publish(car_control_msg)
+        rospy.sleep(50)
 
     def drive(self):
 	#while not rospy.is_shutdown():
         self.drive_line()
-	self.drive_line2()
-	self.stop()
+        self.drive_line2()
+        self.stop()
         
 
         

@@ -3,8 +3,11 @@
   <arg name="pkg_name" value="net"/>
   <arg name="node_name" value="net_node"/>
 
-  <group ns="$(arg veh)">
+  <group ns="duckiesam">
     <node name="net_node"  pkg="$(arg pkg_name)" type="$(arg node_name).py" output="screen" required="true"/>
   </group>
 
+  <group ns="duckieking">
+    <node name="net_node"  pkg="$(arg pkg_name)" type="$(arg node_name).py" output="screen" required="true"/>
+  </group> 
 </launch>

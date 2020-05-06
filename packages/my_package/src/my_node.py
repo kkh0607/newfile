@@ -23,12 +23,12 @@ class MyNode(DTROS):
         super(MyNode, self).__init__(node_name=node_name)
 
     # construct publisher and subsriber
-        self.pub = rospy.Publisher('~chatter', String, queue_size=10)
+        self.pub = rospy.Publisher('/duckiesam/chatter', String, queue_size=10)
         self.sub_image = rospy.Subscriber("/duckiesam/camera_node/image/compressed", CompressedImage, self.find_marker, buff_size=921600,queue_size=1)
-        self.pub_image = rospy.Publisher('/duckiesam/camera_node/image', Image, queue_size = 1)
+        self.pub_image = rospy.Publisher('/duckiesam/modified_image', Image, queue_size = 1)
         self.sub_info = rospy.Subscriber("/duckiesam/camera_node/camera_info", CameraInfo, self.get_camera_info, queue_size=1)
         self.pub_move = rospy.Publisher("/duckiesam/joy_mapper_node/car_cmd", Twist2DStamped, queue_size = 1)
-        self.leader_detected = rospy.Publisher("~detection",BoolStamped, queue_size=1)
+        self.leader_detected = rospy.Publisher("/duckiesam/detection",BoolStamped, queue_size=1)
 
 	#values for detecting marker
         self.starting = 0

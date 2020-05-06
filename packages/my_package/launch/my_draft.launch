@@ -5,7 +5,7 @@
 
   <group ns="$(arg veh)">
     <node name="drive_circle"  pkg="$(arg pkg_name)" type="$(arg node_name).py" output="screen" required="true">
-      <remap from="~/car_cmd" to="/$(arg veh)/joy_mapper_node/car_cmd"/>
+ 
     </node>
   </group>
 

@@ -3,10 +3,15 @@
   <arg name="pkg_name" value="my_package"/>
   <arg name="node_name" value="drive_circle"/>
 
-  <group ns="$(arg veh)">
+  <group ns="duckieking">
     <node name="drive_circle"  pkg="$(arg pkg_name)" type="$(arg node_name).py" output="screen" required="true">
- 
+      <remap from="~/car_cmd" to="/duckieking/joy_mapper_node/car_cmd"/>
     </node>
   </group>
 
+  <group ns="duckiesam">
+    <node name="drive_circle"  pkg="$(arg pkg_name)" type="$(arg node_name).py" output="screen" required="true">
+       <remap from="~/car_cmd" to="/duckiesam/joy_mapper_node/car_cmd"/>
+    </node>
+  </group>
 </launch>

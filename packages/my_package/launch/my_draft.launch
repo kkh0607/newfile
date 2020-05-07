@@ -3,9 +3,9 @@
   <arg name="pkg_name" value="my_package"/>
   <arg name="node_name" value="drive_circle"/>
 
-  <group ns="duckieking">
+  <group ns="$(arg veh)">
     <node name="drive_circle"  pkg="$(arg pkg_name)" type="$(arg node_name).py" output="screen" required="true">
-      <remap from="~/car_cmd" to="/duckieking/joy_mapper_node/car_cmd"/>
+      <remap from="~/car_cmd" to="/$(arg veh)/joy_mapper_node/car_cmd"/>
     </node>
   </group>
 

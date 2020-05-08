@@ -45,7 +45,7 @@ class DriveCircle(DTROS):
         self.pub_move.publish(car_control_msg)
         
     
-    def drive_curve(self):
+    def drive_circle(self):
         car_control_msg = Twist2DStamped()
         car_control_msg.v = self.defaultvelocity
         car_control_msg.omega = self.defaultomega

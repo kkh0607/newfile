@@ -2,12 +2,37 @@
   <arg name="veh" doc="Name of vehicle. ex: megaman"/>
   <arg name="pkg_name" value="net"/>
   <arg name="node_name" value="net_node"/>
+  <arg name="robot_type" value="duckiebot"/>
+  <arg name="param_file_name" default="default"/>
+  <arg name="include" default="(/duckieking/joy_mapper_node/car_cmd|/duckieking/starting|/duckieking/wheels_driver_node/wheels_cmd|/duckieking/camera_node/image/compressed)"/>
+  <arg name="out_path" default="/data/logs" />
 
-  <group ns="duckiesam">
-    <node name="net_node"  pkg="$(arg pkg_name)" type="$(arg node_name).py" output="screen" required="true"/>
+  <!-- leader vehicle nodes -->
+  <group ns="duckieking">
+    <remap from="~car_cmd" to="duckieking/joy_mapper_node/car_cmd"/>
+    <include file="$(find joystick)/launch/joystick_node.launch">
+            <arg name="veh" value="duckieking)"/>
+            <arg name="param_file_name" value="$(arg param_file_name)"/>
+    </include>
+    <node pkg="rosbag" type="record" name="rosbag_record" args="-e $(arg include) -o $(arg out_path)/duckieking"/>
   </group>
 
-  <group ns="duckieking">
-    <node name="net_node"  pkg="$(arg pkg_name)" type="$(arg node_name).py" output="screen" required="true"/>
+  <!-- leader vehicle nodes -->
+  <group ns="duckiesam">
+    <remap from="~car_cmd" to="duckiesam/joy_mapper_node/car_cmd"/>
+    <include file="$(find car_interface)/launch/all.launch">
+	<arg name="veh" value="duckiesam"/>
+    </include>
+    <include file="$(find joystick)/launch/joystick_node.launch">
+            <arg name="veh" value="duckiesam)"/>
+            <arg name="param_file_name" value="$(arg param_file_name)"/>
+    </include>
+    <include file="$(find wheels_driver)/launch/wheels_driver_node.launch">
+         <arg name="veh" value="duckiesam"/>
+         <arg name="param_file_name" value="$(arg param_file_name)"/>
+    </include>
+    <node name="follower_drive"  pkg="$(arg pkg_name)" type="$(arg node_name).py" output="screen" required="true"/>
   </group> 
+
+
 </launch>

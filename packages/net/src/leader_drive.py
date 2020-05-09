@@ -34,7 +34,7 @@ class LeaderDrive(DTROS):
         
     
     def start(self):
-        self.sub_move = rospy.Subscriber("/duckiesam/joy_mapper_node/car_cmd", Twist2DStamped, self.bagout queue_size = 1)
+        self.sub_move = rospy.Subscriber("/duckiesam/joy_mapper_node/car_cmd", Twist2DStamped, self.bagout, queue_size = 1)
     
     def bagout(self):
         #publish bag

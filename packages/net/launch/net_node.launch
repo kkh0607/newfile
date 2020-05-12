@@ -1,38 +1,62 @@
 <launch>
   <arg name="veh" doc="Name of vehicle. ex: megaman"/>
   <arg name="pkg_name" value="net"/>
-  <arg name="node_name" value="net_node"/>
+  <arg name="node_name" value="network"/>
   <arg name="robot_type" value="duckiebot"/>
   <arg name="param_file_name" default="default"/>
-  <arg name="include" default="(/duckieking/joy_mapper_node/car_cmd|/duckieking/starting|/duckieking/wheels_driver_node/wheels_cmd|/duckieking/camera_node/image/compressed)"/>
+  <arg name="include" default="(/duckieking/joy_mapper_node/car_cmd|/duckieking/wheels_driver_node/wheels_cmd|/duckieking/kinematics_node/velocity|/duckieking/velocity_to_pose_node/pose)"/>
   <arg name="out_path" default="/data/logs" />
+  
 
-  <!-- leader vehicle nodes -->
-  <group ns="duckieking">
-    <remap from="~car_cmd" to="duckieking/joy_mapper_node/car_cmd"/>
-    <include file="$(find joystick)/launch/joystick_node.launch">
-            <arg name="veh" value="duckieking)"/>
-            <arg name="param_file_name" value="$(arg param_file_name)"/>
+  <!-- leader vehicle nodes duckieking -->
+   
+    <include file="$(find car_interface)/launch/all.launch">
+       <arg name="veh" value="duckieking"/>
+       <arg name="param_file_name" default="default"/>
     </include>
-    <node pkg="rosbag" type="record" name="rosbag_record" args="-e $(arg include) -o $(arg out_path)/duckieking"/>
-  </group>
+	
+    <group if="$(eval arg("robot_type") == 'duckiebot')">
+        <include file="$(find joystick)/launch/joystick_node.launch">
+            <arg name="veh" value="duckieking"/>
+            <arg name="param_file_name" default="default"/>
+        </include>
 
-  <!-- leader vehicle nodes -->
-  <group ns="duckiesam">
-    <remap from="~car_cmd" to="duckiesam/joy_mapper_node/car_cmd"/>
+        <!-- Wheel Drivers: reads ROS messages and spins the motors -->
+        <include file="$(find wheels_driver)/launch/wheels_driver_node.launch">
+            <arg name="veh" value="duckieking"/>
+            <arg name="param_file_name" default="default"/>
+        </include>
+    </group>
+
+    <!-- start leader vehicle -->
+    <include file="$(find my_package)/launch/my_draft.launch">
+            <arg name="veh" value="duckieking"/>
+	    <arg name="node_name" value="drive_circle"/>
+    </include>
+    
+    <!-- start broacasting -->
+    <node name="leader_tf" pkg="$(arg pkg_name)" type="$(arg node_name).py" output="screen" respawn="false" >
+            <param name="duckie" type="string" value="duckieking"/>
+    </node>
+  
+
+  <!-- follower vehicle nodes duckiesam -->
+  
+    
     <include file="$(find car_interface)/launch/all.launch">
 	<arg name="veh" value="duckiesam"/>
     </include>
-    <include file="$(find joystick)/launch/joystick_node.launch">
-            <arg name="veh" value="duckiesam)"/>
+    <include file="$(find duckiebot_interface)/launch/all_drivers.launch">
+            <arg name="veh" value="duckiesam"/>
             <arg name="param_file_name" value="$(arg param_file_name)"/>
     </include>
-    <include file="$(find wheels_driver)/launch/wheels_driver_node.launch">
-         <arg name="veh" value="duckiesam"/>
-         <arg name="param_file_name" value="$(arg param_file_name)"/>
-    </include>
-    <node name="follower_drive"  pkg="$(arg pkg_name)" type="$(arg node_name).py" output="screen" required="true"/>
-  </group> 
+    
+    <node name="follower_tf" pkg="$(arg pkg_name)" type="$(arg node_name).py" output="screen" respawn="false" >
+            <param name="duckie" type="string" value="duckiesam"/>
+    </node>
+    <node name="follower_drive" pkg="$(arg pkg_name)" type="follower_drive.py" />
+    <node pkg="rosbag" type="record" name="rosbag_record" args="-e $(arg include) -o $(arg out_path)/duckieking"/>
 
 
+  <node pkg="$(arg pkg_name)" type="togo.py" name="togo" />
 </launch>

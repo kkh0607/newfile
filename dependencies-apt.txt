@@ -2,3 +2,4 @@
 ros-kinetic-image-geometry
 ros-kinetic-tf-conversions
 ros-kinetic-joy
+iputils-ping

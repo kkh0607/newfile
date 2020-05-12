@@ -5,6 +5,12 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   duckietown_msgs
   rospy
+  roscpp
+  std_msgs
 )
 
 catkin_package()
+
+include_directories(
+  ${catkin_INCLUDE_DIRS}
+)
